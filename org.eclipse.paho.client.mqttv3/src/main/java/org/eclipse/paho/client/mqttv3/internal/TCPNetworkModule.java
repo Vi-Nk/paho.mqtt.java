@@ -41,6 +41,8 @@ public class TCPNetworkModule implements NetworkModule {
 	private String host;
 	private int port;
 	private int conTimeout;
+	private InetAddress localAddress;
+	private int localPort;
 
 	/**
 	 * Constructs a new TCPNetworkModule using the specified host and
@@ -58,6 +60,17 @@ public class TCPNetworkModule implements NetworkModule {
 		this.port = port;
 
 	}
+	
+	//TCP network module to accept selective IP address for Socket creation.
+		public TCPNetworkModule(SocketFactory factory, String host, int port,
+			String resourceContext, InetAddress localAddress, int localPort) {
+		log.setResourceName(resourceContext);
+		this.factory = factory;
+		this.host = host;
+		this.port = port;
+		this.localAddress = localAddress;
+		this.localPort = localPort;
+	}
 
 	/**
 	 * Starts the module, by creating a TCP socket to the server.
@@ -67,10 +80,17 @@ public class TCPNetworkModule implements NetworkModule {
 	public void start() throws IOException, MqttException {
 		final String methodName = "start";
 		try {
+			
 			// @TRACE 252=connect to host {0} port {1} timeout {2}
 			log.fine(CLASS_NAME,methodName, "252", new Object[] {host, Integer.valueOf(port), Long.valueOf(conTimeout*1000)});
 			SocketAddress sockaddr = new InetSocketAddress(host, port);
+			if (localAddress == null) { //default impl
 			socket = factory.createSocket();
+			}
+			else { // create with custom ip binding provided through constructor
+			socket = factory.createSocket(host, port, localAddress,
+							localPort);			
+			}
 			socket.connect(sockaddr, conTimeout*1000);
 			socket.setSoTimeout(1000);
 		}
